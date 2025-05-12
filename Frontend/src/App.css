@@ -1,0 +1,18 @@
+body {
+  font-family: 'Arial', sans-serif;
+  background-color: #F5E7B2;
+  scroll-behavior: smooth;
+}
+img {
+  object-fit: cover;
+  width: 100%;
+}
+
+.custom-navbar {
+  background-color: #973131; /* cokelat tua */
+}
+
+.navbar .nav-link,
+.navbar .navbar-brand {
+  color: #fff !important; /* biar teks terlihat di background gelap */
+}
