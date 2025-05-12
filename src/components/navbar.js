@@ -2,8 +2,8 @@ import React from 'react';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 const Navbar = () => (
-  <nav className="navbar navbar-expand-lg navbar-dark bg-danger px-5 sticky-top">
-    <a className="navbar-brand fw-bold" href="#beranda">JajanOzil.</a>
+  <nav className="navbar navbar-expand-lg navbar-dark px-5 sticky-top" style={{ backgroundColor: '#973131' }}>
+    <a className="navbar-brand fw-bold fs-4" href="#beranda">JajanOzil.</a>
     <div className="collapse navbar-collapse">
       <ul className="navbar-nav ms-auto">
         <li className="nav-item"><a className="nav-link" href="#beranda">Beranda</a></li>
