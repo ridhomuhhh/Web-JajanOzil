@@ -1,64 +1,99 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Sidebar from '../components/SideBar';
-import StatCard from '../components/Statcard';
-import CustomBarChart from '../components/BarCharts';
-import { FaBars, FaWallet, FaUsers, FaBox } from 'react-icons/fa';
+import Header from '../components/Header'; 
+import Statcard from '../components/Statcard';
+import BarCharts from '../components/BarCharts';
+import { FaWallet, FaUsers, FaBox } from 'react-icons/fa';
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [username, setUsername] = useState('Admin');
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
-  // ✅ Proteksi: redirect ke login jika belum login
+  // Proteksi: redirect ke login jika belum login
   useEffect(() => {
     const isLoggedIn = localStorage.getItem('isLoggedIn');
+    const storedUsername = localStorage.getItem('username');
+    
     if (isLoggedIn !== 'true') {
-      navigate('/');
+      navigate('/home');
+    } else if (storedUsername) {
+      setUsername(storedUsername);
     }
   }, [navigate]);
 
+  const handleLogout = () => {
+    setIsLoggingOut(true);
+    
+    // Simulasi proses logout ke server (bisa diganti dengan API call yang sebenarnya)
+    setTimeout(() => {
+      // Hapus semua data user dari localStorage
+      localStorage.removeItem('isLoggedIn');
+      localStorage.removeItem('username');
+      localStorage.removeItem('userToken'); // Jika menggunakan token
+      
+      // Redirect ke halaman login
+      navigate('/home');
+    }, 500); // Delay sedikit untuk menunjukkan proses logout
+  };
+
+  // Konfirmasi logout
+  const confirmLogout = () => {
+    if (window.confirm('Apakah Anda yakin ingin keluar?')) {
+      handleLogout();
+    }
+  };
+
   return (
-    <div>
-      {/* Overlay */}
-      {isSidebarOpen && (
-        <div
-          className="position-fixed top-0 start-0 w-100 h-100"
-          style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)', zIndex: 998 }}
-          onClick={() => setIsSidebarOpen(false)}
-        ></div>
-      )}
-
+    <div className="d-flex">
       {/* Sidebar */}
-      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+      <Sidebar />
 
-      {/* Main Content */}
-      <div
-        className="p-4"
-        style={{
-          backgroundColor: '#f6e9b2',
-          minHeight: '100vh',
-          marginLeft: isSidebarOpen ? '250px' : '0',
-          transition: 'margin-left 0.3s',
-          position: 'relative',
-          zIndex: 1
-        }}
-      >
-        <button className="btn btn-outline-danger mb-3" onClick={() => setIsSidebarOpen(true)}>
-          <FaBars />
-        </button>
+      {/* Content Area */}
+      <div className="flex-grow-1">
+        {/* Header Component */}
+        <Header 
+          username={username} 
+          isLoggingOut={isLoggingOut} 
+          confirmLogout={confirmLogout} 
+        />
 
-        <h4 className="fw-bold">Dashboard</h4>
-        <p>Selamat datang kembali, Admin!</p>
+        {/* Main Content */}
+        <div
+          style={{
+            backgroundColor: '#f6e9b2',
+            minHeight: '100vh',
+            padding: '80px 30px 20px 30px', /* Ditambahkan padding-top lebih besar agar tidak terlalu mepet header */
+            overflowX: 'hidden'
+          }}
+        >
+          {/* Dashboard Header - Not Fixed */}
+          <div className="mb-4">
+            <h4 className="fw-bold mb-1">Dashboard</h4>
+            <p className="text-secondary">Selamat datang kembali, {username}!</p>
+          </div>
 
-        <div className="row g-3 mb-4">
-          <div className="col-md-4"><StatCard title="Total Transaksi" value="123" icon={<FaWallet />} bg="#fff8e1" /></div>
-          <div className="col-md-4"><StatCard title="Total Mitra" value="7" icon={<FaUsers />} bg="#e0f7fa" /></div>
-          <div className="col-md-4"><StatCard title="Total Produk" value="56 pcs" icon={<FaBox />} bg="#fce4ec" /></div>
-        </div>
+          {/* Stat Cards */}
+          <div className="row g-4 mb-5">
+            <div className="col-md-4">
+              <Statcard title="Total Transaksi" value="123" icon={<FaWallet size={20}/>} bg="#fff8e1"/>
+            </div>
+            <div className="col-md-4">
+              <Statcard title="Total Mitra"  value="76" icon={<FaUsers size={20}/>} bg="#e0f7fa"/>
+            </div>
+            <div className="col-md-4">
+              <Statcard title="Total Produk"  value="56 pcs" icon={<FaBox size={20} />} bg="#fce4ec"/>
+            </div>
+          </div>
 
-        <div className="bg-white p-3 rounded shadow-sm">
-          <h6 className="mb-3 fw-bold">Grafik Keuangan Bulanan</h6>
-          <CustomBarChart />
+          {/* Chart */}
+          <div className="bg-white p-4 rounded shadow-sm">
+            <h6 className="mb-4 fw-bold">Grafik Keuangan Bulanan</h6>
+            <div className="chart-container">
+              <BarCharts />
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -13,8 +13,14 @@ function MenuSection() {
     <section className="container my-5" id="menu" style={{ scrollMarginTop: "70px" }}>
       <div className="row g-3">
         {foodImages.map((imgSrc, index) => (
-          <div className="col-md-4" key={index}>
-            <img src={imgSrc} alt={`Food ${index + 1}`} className="img-fluid rounded" />
+          <div className="col-12 col-sm-6 col-md-4" key={index}>
+            <div className="menu-item h-100">
+              <img 
+                src={imgSrc} 
+                alt={`Food ${index + 1}`} 
+                className="img-fluid rounded w-100 h-100 object-fit-cover"
+              />
+            </div>
           </div>
         ))}
       </div>
