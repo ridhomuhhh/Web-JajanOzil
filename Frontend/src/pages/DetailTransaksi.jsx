@@ -257,13 +257,7 @@ const DetailTransaksi = () => {
             isLoggingOut={isLoggingOut}
             confirmLogout={confirmLogout}
           />
-          <div
-            style={{
-              backgroundColor: '#F5E7B9',
-              minHeight: '100vh',
-              padding: '80px 30px 20px 30px'
-            }}
-          >
+          <div style={{ backgroundColor: '#F5E7B9', minHeight: '100vh', padding: '80px 30px 20px 30px' }}>
             <div className="text-center py-5">
               <div className="spinner-border text-dark" role="status">
                 <span className="visually-hidden">Loading...</span>
@@ -286,20 +280,10 @@ const DetailTransaksi = () => {
             isLoggingOut={isLoggingOut}
             confirmLogout={confirmLogout}
           />
-          <div
-            style={{
-              backgroundColor: '#F5E7B9',
-              minHeight: '100vh',
-              padding: '80px 30px 20px 30px'
-            }}
-          >
+          <div style={{ backgroundColor: '#F5E7B9', minHeight: '100vh', padding: '80px 30px 20px 30px' }}>
             <div className="text-center py-5">
               <h4>Transaksi tidak ditemukan</h4>
-              <button 
-                className="btn mt-3" 
-                style={{ backgroundColor: '#973131', color: '#fff' }}
-                onClick={handleBackToTransactions}
-              >
+              <button className="btn mt-3" style={{ backgroundColor: '#973131', color: '#fff' }} onClick={handleBackToTransactions}>
                 Kembali ke Daftar Transaksi
               </button>
             </div>
@@ -340,29 +324,15 @@ const DetailTransaksi = () => {
             {isEditing ? 'Edit Transaksi' : 'Informasi Transaksi'}
           </h3>
           <div className="mb-3 d-flex justify-content-between align-items-center">
-            <button 
-              className="btn btn-link text-decoration-none" 
-              style={{ color: '#973131' }}
-              onClick={handleBackToTransactions}
-            >
+            <button className="btn btn-link text-decoration-none" style={{ color: '#973131' }} onClick={handleBackToTransactions}>
               <i className="bi bi-arrow-left me-1"></i> Kembali ke Daftar Transaksi
             </button>
             {isEditing ? (
               <div>
-                <button 
-                  className="btn me-2" 
-                  style={{ backgroundColor: '#6c757d', color: '#fff' }}
-                  onClick={toggleEditMode}
-                  disabled={isSaving}
-                >
+                <button className="btn btn-secondary me-2" style={{ color: '#fff' }} onClick={toggleEditMode} disabled={isSaving}>
                   Batal
                 </button>
-                <button 
-                  className="btn" 
-                  style={{ backgroundColor: '#28a745', color: '#fff' }}
-                  onClick={handleSaveChanges}
-                  disabled={isSaving}
-                >
+                <button className="btn" style={{ backgroundColor: '#973131', color: '#fff' }} onClick={handleSaveChanges} disabled={isSaving}>
                   {isSaving ? (
                     <>
                       <span className="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
@@ -374,11 +344,7 @@ const DetailTransaksi = () => {
                 </button>
               </div>
             ) : (
-              <button 
-                className="btn" 
-                style={{ backgroundColor: '#973131', color: '#fff' }}
-                onClick={toggleEditMode}
-              >
+              <button className="btn" style={{ backgroundColor: '#973131', color: '#fff' }} onClick={toggleEditMode}>
                 Edit
               </button>
             )}
@@ -429,11 +395,7 @@ const DetailTransaksi = () => {
             <div className="p-3 border-bottom d-flex justify-content-between align-items-center">
               <h5 className="fw-bold mb-0">Detail Produk</h5>
               {isEditing && (
-                <button 
-                  className="btn btn-sm" 
-                  style={{ backgroundColor: '#28a745', color: '#fff' }}
-                  onClick={handleAddProduct}
-                >
+                <button className="btn btn-sm" style={{ backgroundColor: '#973131', color: '#fff' }} onClick={handleAddProduct}>
                   <i className="bi bi-plus"></i> Tambah Produk
                 </button>
               )}

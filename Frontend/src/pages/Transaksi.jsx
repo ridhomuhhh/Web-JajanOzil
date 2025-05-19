@@ -1,5 +1,3 @@
-// Transaksi.jsx
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom'; 
 import Header from '../components/Header';
@@ -119,11 +117,7 @@ const Transaksi = () => {
           <h3 className="fw-bold mb-3">Transaksi</h3>
           <div className="mb-3">
             {/* Opsi 1: Menggunakan useNavigate */}
-            <button 
-              className="btn" 
-              style={{ backgroundColor: '#973131', color: '#fff' }} 
-              onClick={navigateToCatatTransaksi}
-            >
+            <button className="btn" style={{ backgroundColor: '#973131', color: '#fff' }} onClick={navigateToCatatTransaksi}>
               + Catat Transaksi
             </button>
             

@@ -1,5 +1,3 @@
-// CatatTransaksi.jsx
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
@@ -145,10 +143,7 @@ const CatatTransaksi = () => {
         >
           <div className="d-flex justify-content-between align-items-center mb-3">
             <h3 className="fw-bold">Catat Transaksi</h3>
-            <button 
-              className="btn btn-outline-secondary"
-              onClick={handleCancelTransaction}
-            >
+            <button className="btn btn-outline-secondary" onClick={handleCancelTransaction}>
               Kembali
             </button>
           </div>
@@ -288,8 +283,7 @@ const CatatTransaksi = () => {
 
               <div className="d-flex justify-content-end mt-3">
                 <button 
-                  className="btn btn-secondary me-2" style={{ filter: 'none' }}
-                  onClick={handleCancelProduct}
+                  className="btn btn-secondary me-2" style={{ filter: 'none' }} onClick={handleCancelProduct}
                 >
                   Batal
                 </button>
