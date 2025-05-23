@@ -4,6 +4,19 @@ import { FaThLarge, FaExchangeAlt, FaFileAlt, FaSignOutAlt, FaBars, FaTimes } fr
 const Sidebar = () => {
   const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
   const [isOpen, setIsOpen] = useState(!isMobile); // Sidebar terbuka secara default di desktop
+  const [activeMenu, setActiveMenu] = useState('dashboard'); // State untuk menu aktif
+
+  // Menentukan menu aktif berdasarkan URL saat komponen dimount
+  useEffect(() => {
+    const path = window.location.pathname;
+    if (path.includes('/dashboard')) {
+      setActiveMenu('dashboard');
+    } else if (path.includes('/transaksi')) {
+      setActiveMenu('transaksi');
+    } else if (path.includes('/laporan')) {
+      setActiveMenu('laporan');
+    }
+  }, []);
 
   // Memantau perubahan ukuran layar
   useEffect(() => {
@@ -33,6 +46,20 @@ const Sidebar = () => {
     setIsOpen(!isOpen);
   };
 
+  // Styles untuk active/hover effect
+  const getButtonStyle = (menuName) => ({
+    backgroundColor: activeMenu === menuName ? '#4A90E2' : 'transparent',
+    transition: 'all 0.3s ease',
+    borderRadius: '4px',
+    margin: '2px 8px',
+  });
+
+  const buttonHoverStyle = {
+    ':hover': {
+      backgroundColor: activeMenu !== undefined ? '#4A90E2' : 'rgba(255, 255, 255, 0.1)',
+    }
+  };
+
   return (
     <>
       {/* Toggle button untuk mobile */}
@@ -42,8 +69,15 @@ const Sidebar = () => {
           style={{ 
             backgroundColor: '#973131', 
             zIndex: 1040,
+            ...buttonHoverStyle
           }}
           onClick={toggleSidebar}
+          onMouseEnter={(e) => {
+            e.target.style.backgroundColor = '#7a2828';
+          }}
+          onMouseLeave={(e) => {
+            e.target.style.backgroundColor = '#973131';
+          }}
         >
           {isOpen ? <FaTimes size={20} /> : <FaBars size={20} />}
         </button>
@@ -86,10 +120,22 @@ const Sidebar = () => {
           <div className="nav flex-column">
             {/* Beranda */}
             <button 
-              className="nav-link py-2 px-3 text-white d-flex align-items-center border-0 bg-transparent" 
+              className="nav-link py-2 px-3 text-white d-flex align-items-center border-0" 
+              style={getButtonStyle('dashboard')}
               onClick={() => {
+                setActiveMenu('dashboard');
                 window.location.href = '/dashboard';
                 if (isMobile) setIsOpen(false);
+              }}
+              onMouseEnter={(e) => {
+                if (activeMenu !== 'dashboard') {
+                  e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (activeMenu !== 'dashboard') {
+                  e.target.style.backgroundColor = 'transparent';
+                }
               }}
             >
               <FaThLarge className="me-3" /> Dashboard
@@ -97,10 +143,22 @@ const Sidebar = () => {
             
             {/* Transaksi */}
             <button 
-              className="nav-link py-2 px-3 text-white d-flex align-items-center border-0 bg-transparent"
+              className="nav-link py-2 px-3 text-white d-flex align-items-center border-0"
+              style={getButtonStyle('transaksi')}
               onClick={() => {
+                setActiveMenu('transaksi');
                 window.location.href = '/transaksi';
                 if (isMobile) setIsOpen(false);
+              }}
+              onMouseEnter={(e) => {
+                if (activeMenu !== 'transaksi') {
+                  e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (activeMenu !== 'transaksi') {
+                  e.target.style.backgroundColor = 'transparent';
+                }
               }}
             >
               <FaExchangeAlt className="me-3" /> Transaksi
@@ -108,10 +166,22 @@ const Sidebar = () => {
             
             {/* Laporan */}
             <button 
-              className="nav-link py-2 px-3 text-white d-flex align-items-center border-0 bg-transparent"
+              className="nav-link py-2 px-3 text-white d-flex align-items-center border-0"
+              style={getButtonStyle('laporan')}
               onClick={() => {
-                window.location.href = '/reports';
+                setActiveMenu('laporan');
+                window.location.href = '/laporan';
                 if (isMobile) setIsOpen(false);
+              }}
+              onMouseEnter={(e) => {
+                if (activeMenu !== 'laporan') {
+                  e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (activeMenu !== 'laporan') {
+                  e.target.style.backgroundColor = 'transparent';
+                }
               }}
             >
               <FaFileAlt className="me-3" /> Laporan
@@ -124,6 +194,17 @@ const Sidebar = () => {
                 if (isMobile) setIsOpen(false);
               }}
               className="nav-link py-2 px-3 text-white border-0 bg-transparent d-flex align-items-center"
+              style={{
+                transition: 'all 0.3s ease',
+                borderRadius: '4px',
+                margin: '2px 8px',
+              }}
+              onMouseEnter={(e) => {
+                e.target.style.backgroundColor = 'rgba(255, 255, 255, 0.1)';
+              }}
+              onMouseLeave={(e) => {
+                e.target.style.backgroundColor = 'transparent';
+              }}
             >
               <FaSignOutAlt className="me-3" /> Keluar
             </button>

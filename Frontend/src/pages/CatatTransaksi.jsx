@@ -1,3 +1,5 @@
+// CatatTransaksi.jsx
+
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
@@ -35,10 +37,14 @@ const CatatTransaksi = () => {
       id: products.length + 1,
       name: '',
       quantity: '',
-      price: '',
+      costPrice: '', // Harga pokok dari mitra
+      sellingPrice: '', // Harga jual oleh UMKM
       sold: '',
-      revenue: '',
-      stock: ''
+      totalRevenue: 0, // Total pendapatan (sold × sellingPrice)
+      partnerRevenue: 0, // Pendapatan mitra (sold × costPrice)
+      umkmProfit: 0, // Keuntungan UMKM (totalRevenue - partnerRevenue)
+      stock: '', // Sisa produk
+      profitMargin: 0 // Margin keuntungan per unit (sellingPrice - costPrice)
     };
     setProducts([...products, newProduct]);
     setProductCount(productCount + 1);
@@ -46,6 +52,26 @@ const CatatTransaksi = () => {
 
   // Fungsi untuk menyimpan transaksi
   const handleSaveTransaction = () => {
+    // Validasi input
+    const isValid = products.every(product => 
+      product.name.trim() && 
+      product.quantity > 0 && 
+      product.costPrice > 0 && 
+      product.sellingPrice > 0 && 
+      product.sold >= 0 &&
+      product.sellingPrice >= product.costPrice // Harga jual harus >= harga pokok
+    );
+
+    if (!isValid) {
+      alert('Mohon lengkapi semua data produk dengan benar. Harga jual harus lebih besar atau sama dengan harga pokok.');
+      return;
+    }
+
+    // Hitung total revenue, keuntungan UMKM, dan pendapatan mitra
+    const totalRevenue = products.reduce((sum, product) => sum + product.totalRevenue, 0);
+    const totalUmkmProfit = products.reduce((sum, product) => sum + product.umkmProfit, 0);
+    const totalPartnerRevenue = products.reduce((sum, product) => sum + product.partnerRevenue, 0);
+    
     // Membuat objek transaksi baru
     const newTransaction = {
       id: new Date().getTime(), // Menggunakan timestamp sebagai ID
@@ -53,7 +79,9 @@ const CatatTransaksi = () => {
       partnerName: currentTransaction.partnerName,
       products: [...products],
       totalProducts: productCount,
-      totalRevenue: products.reduce((sum, product) => sum + product.revenue, 0)
+      totalRevenue: totalRevenue,
+      totalUmkmProfit: totalUmkmProfit,
+      totalPartnerRevenue: totalPartnerRevenue
     };
     
     // Di sini Anda bisa menyimpan transaksi ke state global/context/redux
@@ -96,14 +124,28 @@ const CatatTransaksi = () => {
     const updatedProducts = [...products];
     updatedProducts[index][field] = value;
     
-    // Hitung ulang pendapatan dan stok setiap kali jumlah produk, harga, atau produk terjual berubah
-    if (['quantity', 'price', 'sold'].includes(field)) {
-      const product = updatedProducts[index];
+    // Hitung ulang kalkulasi setiap kali ada perubahan
+    const product = updatedProducts[index];
+    
+    // Kalkulasi margin keuntungan per unit
+    if (product.costPrice && product.sellingPrice) {
+      product.profitMargin = product.sellingPrice - product.costPrice;
+    }
+    
+    // Kalkulasi pendapatan dan keuntungan jika semua data lengkap
+    if (product.sold && product.costPrice && product.sellingPrice) {
+      // Total pendapatan (produk terjual × harga jual)
+      product.totalRevenue = product.sold * product.sellingPrice;
       
-      // Kalkulasi pendapatan (produk terjual x harga)
-      product.revenue = product.sold * product.price;
+      // Pendapatan mitra (produk terjual × harga pokok)
+      product.partnerRevenue = product.sold * product.costPrice;
       
-      // Kalkulasi sisa produk (jumlah produk - produk terjual)
+      // Keuntungan UMKM (total pendapatan - pendapatan mitra)
+      product.umkmProfit = product.totalRevenue - product.partnerRevenue;
+    }
+    
+    // Kalkulasi sisa produk (jumlah produk - produk terjual)
+    if (product.quantity && product.sold) {
       product.stock = product.quantity - product.sold;
     }
     
@@ -117,6 +159,11 @@ const CatatTransaksi = () => {
       [field]: value
     });
   };
+
+  // Hitung total keseluruhan
+  const totalRevenue = products.reduce((sum, product) => sum + product.totalRevenue, 0);
+  const totalUmkmProfit = products.reduce((sum, product) => sum + product.umkmProfit, 0);
+  const totalPartnerRevenue = products.reduce((sum, product) => sum + product.partnerRevenue, 0);
 
   return (
     <div className="d-flex">
@@ -150,38 +197,41 @@ const CatatTransaksi = () => {
 
           {/* Form Transaksi */}
           <div className="bg-white p-4 rounded shadow-sm mb-4">
-            <div className="mb-3">
-              <label htmlFor="tanggal" className="form-label">Tanggal</label>
-              <input
-                type="date"
-                className="form-control"
-                id="tanggal"
-                value={currentTransaction.date}
-                onChange={(e) => handleTransactionChange('date', e.target.value)}
-              />
+            <div className="row mb-3">
+              <div className="col-md-6">
+                <label htmlFor="tanggal" className="form-label">Tanggal</label>
+                <input
+                  type="date"
+                  className="form-control"
+                  id="tanggal"
+                  value={currentTransaction.date}
+                  onChange={(e) => handleTransactionChange('date', e.target.value)}
+                />
+              </div>
+              <div className="col-md-6">
+                <label htmlFor="namaMitra" className="form-label">Nama Mitra</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  id="namaMitra"
+                  placeholder="Masukkan Nama Mitra"
+                  value={currentTransaction.partnerName}
+                  onChange={(e) => handleTransactionChange('partnerName', e.target.value)}
+                />
+              </div>
             </div>
 
-            <div className="mb-3">
-              <label htmlFor="namaMitra" className="form-label">Nama Mitra</label>
-              <input
-                type="text"
-                className="form-control"
-                id="namaMitra"
-                placeholder="Masukkan Nama Mitra"
-                value={currentTransaction.partnerName}
-                onChange={(e) => handleTransactionChange('partnerName', e.target.value)}
-              />
-            </div>
-
-            <div className="mb-3">
-              <label htmlFor="totalJenisProduk" className="form-label">Total Jenis Produk</label>
-              <input
-                type="number"
-                className="form-control bg-light"
-                id="totalJenisProduk"
-                value={productCount}
-                readOnly
-              />
+            <div className="row mb-3">
+              <div className="col-md-6">
+                <label htmlFor="totalJenisProduk" className="form-label">Total Jenis Produk</label>
+                <input
+                  type="number"
+                  className="form-control bg-light"
+                  id="totalJenisProduk"
+                  value={productCount}
+                  readOnly
+                />
+              </div>
             </div>
 
             {/* Detail Produk */}
@@ -193,6 +243,39 @@ const CatatTransaksi = () => {
                 </button>
               </div>
             </div>
+
+            {/* Summary Card - Tampil jika ada produk */}
+            {products.length > 0 && (
+              <div className="bg-light p-3 rounded border">
+                <h6 className="mb-3 text-center">Ringkasan Transaksi</h6>
+                <div className="row text-center">
+                  <div className="col-md-4">
+                    <div className="card bg-secondary text-white">
+                      <div className="card-body">
+                        <h6>Total Pendapatan</h6>
+                        <h5>Rp {totalRevenue.toLocaleString('id-ID')}</h5>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="col-md-4">
+                    <div className="card bg-success text-white">
+                      <div className="card-body">
+                        <h6>Keuntungan UMKM</h6>
+                        <h5>Rp {totalUmkmProfit.toLocaleString('id-ID')}</h5>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="col-md-4">
+                    <div className="card bg-primary text-white">
+                      <div className="card-body">
+                        <h6>Pendapatan Mitra</h6>
+                        <h5>Rp {totalPartnerRevenue.toLocaleString('id-ID')}</h5>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Form Detail Produk yang muncul setelah klik Tambah Produk */}
@@ -207,8 +290,9 @@ const CatatTransaksi = () => {
                     </button>
                   </div>
 
+                  {/* Baris 1: Info Dasar Produk */}
                   <div className="row mb-3">
-                    <div className="col-md-4">
+                    <div className="col-md-3">
                       <label htmlFor={`namaProduk${index}`} className="form-label">Nama Produk</label>
                       <input
                         type="text"
@@ -219,7 +303,7 @@ const CatatTransaksi = () => {
                         onChange={(e) => handleProductChange(index, 'name', e.target.value)}
                       />
                     </div>
-                    <div className="col-md-4">
+                    <div className="col-md-3">
                       <label htmlFor={`jumlahProduk${index}`} className="form-label">Jumlah Produk</label>
                       <input
                         type="number"
@@ -230,50 +314,99 @@ const CatatTransaksi = () => {
                         onChange={(e) => handleProductChange(index, 'quantity', parseInt(e.target.value) || 0)}
                       />
                     </div>
-                    <div className="col-md-4">
-                      <label htmlFor={`harga${index}`} className="form-label">Harga</label>
+                    <div className="col-md-3">
+                      <label htmlFor={`hargaPokok${index}`} className="form-label">
+                        Harga Pokok (Rp) <small className="text-muted">*Harga dari mitra</small>
+                      </label>
                       <input
                         type="number"
                         className="form-control"
-                        id={`harga${index}`}
+                        id={`hargaPokok${index}`}
                         placeholder="0"
-                        value={product.price}
-                        onChange={(e) => handleProductChange(index, 'price', parseInt(e.target.value) || 0)}
+                        value={product.costPrice}
+                        onChange={(e) => handleProductChange(index, 'costPrice', parseInt(e.target.value) || 0)}
+                      />
+                    </div>
+                    <div className="col-md-3">
+                      <label htmlFor={`hargaJual${index}`} className="form-label">
+                        Harga Jual (Rp) <small className="text-muted">*Harga jual UMKM</small>
+                      </label>
+                      <input
+                        type="number"
+                        className="form-control"
+                        id={`hargaJual${index}`}
+                        placeholder="0"
+                        value={product.sellingPrice}
+                        onChange={(e) => handleProductChange(index, 'sellingPrice', parseInt(e.target.value) || 0)}
                       />
                     </div>
                   </div>
 
-                  <div className="row">
-                    <div className="col-md-4">
+                  {/* Baris 2: Produk Terjual dan Margin */}
+                  <div className="row mb-3">
+                    <div className="col-md-3">
                       <label htmlFor={`produkTerjual${index}`} className="form-label">Produk Terjual</label>
                       <input
                         type="number"
                         className="form-control"
                         id={`produkTerjual${index}`}
                         placeholder="0"
+                        max={product.quantity}
                         value={product.sold}
                         onChange={(e) => handleProductChange(index, 'sold', parseInt(e.target.value) || 0)}
                       />
                     </div>
-                    <div className="col-md-4">
-                      <label htmlFor={`pendapatan${index}`} className="form-label">Pendapatan</label>
+                    <div className="col-md-3">
+                      <label htmlFor={`marginKeuntungan${index}`} className="form-label">Margin per Unit</label>
                       <input
-                        type="number"
-                        className="form-control bg-light"
-                        id={`pendapatan${index}`}
-                        placeholder="0"
-                        value={product.revenue}
+                        type="text"
+                        className="form-control bg-warning text-dark"
+                        id={`marginKeuntungan${index}`}
+                        value={`Rp ${product.profitMargin.toLocaleString('id-ID')}`}
                         readOnly
                       />
                     </div>
-                    <div className="col-md-4">
+                    <div className="col-md-3">
                       <label htmlFor={`sisaProduk${index}`} className="form-label">Sisa Produk</label>
                       <input
                         type="number"
                         className="form-control bg-light"
                         id={`sisaProduk${index}`}
-                        placeholder="0"
                         value={product.stock}
+                        readOnly
+                      />
+                    </div>
+                  </div>
+
+                  {/* Baris 3: Hasil Kalkulasi */}
+                  <div className="row">
+                    <div className="col-md-3">
+                      <label htmlFor={`totalPendapatan${index}`} className="form-label">Total Pendapatan</label>
+                      <input
+                        type="text"
+                        className="form-control bg-secondary text-white"
+                        id={`totalPendapatan${index}`}
+                        value={`Rp ${product.totalRevenue.toLocaleString('id-ID')}`}
+                        readOnly
+                      />
+                    </div>
+                    <div className="col-md-3">
+                      <label htmlFor={`keuntunganUmkm${index}`} className="form-label">Keuntungan UMKM</label>
+                      <input
+                        type="text"
+                        className="form-control bg-success text-white"
+                        id={`keuntunganUmkm${index}`}
+                        value={`Rp ${product.umkmProfit.toLocaleString('id-ID')}`}
+                        readOnly
+                      />
+                    </div>
+                    <div className="col-md-3">
+                      <label htmlFor={`pendapatanMitra${index}`} className="form-label">Pendapatan Mitra</label>
+                      <input
+                        type="text"
+                        className="form-control bg-primary text-white"
+                        id={`pendapatanMitra${index}`}
+                        value={`Rp ${product.partnerRevenue.toLocaleString('id-ID')}`}
                         readOnly
                       />
                     </div>

@@ -95,14 +95,23 @@ const DetailTransaksi = () => {
 
   // Menghitung total dari semua produk
   const calculateTotals = (products) => {
-    if (!products) return { totalProducts: 0, totalSold: 0, totalStock: 0, totalRevenue: 0 };
+    if (!products) return { 
+      totalProducts: 0, 
+      totalSold: 0, 
+      totalStock: 0, 
+      totalRevenue: 0,
+      totalUmkmProfit: 0,
+      totalPartnerRevenue: 0
+    };
     
     const totalProducts = products.reduce((sum, product) => sum + parseInt(product.quantity || 0), 0);
     const totalSold = products.reduce((sum, product) => sum + parseInt(product.sold || 0), 0);
     const totalStock = products.reduce((sum, product) => sum + parseInt(product.stock || 0), 0);
-    const totalRevenue = products.reduce((sum, product) => sum + parseInt(product.revenue || 0), 0);
+    const totalRevenue = products.reduce((sum, product) => sum + parseInt(product.totalRevenue || 0), 0);
+    const totalUmkmProfit = products.reduce((sum, product) => sum + parseInt(product.umkmProfit || 0), 0);
+    const totalPartnerRevenue = products.reduce((sum, product) => sum + parseInt(product.partnerRevenue || 0), 0);
     
-    return { totalProducts, totalSold, totalStock, totalRevenue };
+    return { totalProducts, totalSold, totalStock, totalRevenue, totalUmkmProfit, totalPartnerRevenue };
   };
 
   // Toggle mode edit
@@ -136,16 +145,34 @@ const DetailTransaksi = () => {
     // Update nilai produk
     updatedProducts[index] = {
       ...updatedProducts[index],
-      [field]: field === 'name' ? value : parseInt(value),
+      [field]: field === 'name' ? value : parseInt(value) || 0,
     };
     
-    // Jika yang diubah adalah quantity, sold, atau price, hitung ulang revenue dan stock
-    if (['quantity', 'sold', 'price'].includes(field)) {
+    // Jika yang diubah adalah quantity, sold, costPrice, atau sellingPrice, hitung ulang kalkulasi
+    if (['quantity', 'sold', 'costPrice', 'sellingPrice'].includes(field)) {
       const product = updatedProducts[index];
-      // Hitung ulang stock
-      product.stock = product.quantity - product.sold;
-      // Hitung ulang revenue
-      product.revenue = product.sold * product.price;
+      
+      // Kalkulasi margin keuntungan per unit
+      if (product.costPrice && product.sellingPrice) {
+        product.profitMargin = product.sellingPrice - product.costPrice;
+      }
+      
+      // Kalkulasi pendapatan dan keuntungan jika semua data lengkap
+      if (product.sold && product.costPrice && product.sellingPrice) {
+        // Total pendapatan (produk terjual × harga jual)
+        product.totalRevenue = product.sold * product.sellingPrice;
+        
+        // Pendapatan mitra (produk terjual × harga pokok)
+        product.partnerRevenue = product.sold * product.costPrice;
+        
+        // Keuntungan UMKM (total pendapatan - pendapatan mitra)
+        product.umkmProfit = product.totalRevenue - product.partnerRevenue;
+      }
+      
+      // Kalkulasi sisa produk (jumlah produk - produk terjual)
+      if (product.quantity && product.sold !== undefined) {
+        product.stock = product.quantity - product.sold;
+      }
     }
 
     setEditedTransaction({
@@ -157,12 +184,17 @@ const DetailTransaksi = () => {
   // Tambah produk baru
   const handleAddProduct = () => {
     const newProduct = {
-      name: 'Produk Baru',
+      id: editedTransaction.products.length + 1,
+      name: '',
       quantity: 0,
-      price: 0,
+      costPrice: 0, // Harga pokok dari mitra
+      sellingPrice: 0, // Harga jual oleh UMKM
       sold: 0,
-      stock: 0,
-      revenue: 0,
+      totalRevenue: 0, // Total pendapatan (sold × sellingPrice)
+      partnerRevenue: 0, // Pendapatan mitra (sold × costPrice)
+      umkmProfit: 0, // Keuntungan UMKM (totalRevenue - partnerRevenue)
+      stock: 0, // Sisa produk
+      profitMargin: 0 // Margin keuntungan per unit (sellingPrice - costPrice)
     };
 
     setEditedTransaction({
@@ -173,13 +205,15 @@ const DetailTransaksi = () => {
 
   // Hapus produk
   const handleRemoveProduct = (index) => {
-    const updatedProducts = [...editedTransaction.products];
-    updatedProducts.splice(index, 1);
-    
-    setEditedTransaction({
-      ...editedTransaction,
-      products: updatedProducts,
-    });
+    if (window.confirm('Apakah Anda yakin ingin menghapus produk ini?')) {
+      const updatedProducts = [...editedTransaction.products];
+      updatedProducts.splice(index, 1);
+      
+      setEditedTransaction({
+        ...editedTransaction,
+        products: updatedProducts,
+      });
+    }
   };
 
   // Simpan perubahan
@@ -207,7 +241,24 @@ const DetailTransaksi = () => {
           setIsSaving(false);
           return;
         }
+
+        if (product.sellingPrice < product.costPrice) {
+          alert(`Produk ${product.name}: Harga jual harus lebih besar atau sama dengan harga pokok!`);
+          setIsSaving(false);
+          return;
+        }
       }
+
+      // Hitung total revenue, keuntungan UMKM, dan pendapatan mitra
+      const totalRevenue = editedTransaction.products.reduce((sum, product) => sum + product.totalRevenue, 0);
+      const totalUmkmProfit = editedTransaction.products.reduce((sum, product) => sum + product.umkmProfit, 0);
+      const totalPartnerRevenue = editedTransaction.products.reduce((sum, product) => sum + product.partnerRevenue, 0);
+
+      // Update informasi total dalam transaksi
+      editedTransaction.totalProducts = editedTransaction.products.length;
+      editedTransaction.totalRevenue = totalRevenue;
+      editedTransaction.totalUmkmProfit = totalUmkmProfit;
+      editedTransaction.totalPartnerRevenue = totalPartnerRevenue;
 
       // Ambil data transaksi dari localStorage
       const savedTransactions = localStorage.getItem('transactions');
@@ -217,9 +268,6 @@ const DetailTransaksi = () => {
       const transactionIndex = transactions.findIndex(t => t.id === parseInt(id));
       
       if (transactionIndex !== -1) {
-        // Update informasi totalProducts untuk tampilan di halaman Transaksi
-        editedTransaction.totalProducts = editedTransaction.products.length;
-        
         // Update transaksi
         transactions[transactionIndex] = editedTransaction;
         
@@ -293,7 +341,7 @@ const DetailTransaksi = () => {
     );
   }
 
-  const { totalProducts, totalSold, totalStock, totalRevenue } = calculateTotals(
+  const { totalProducts, totalSold, totalStock, totalRevenue, totalUmkmProfit, totalPartnerRevenue } = calculateTotals(
     isEditing ? editedTransaction.products : transaction.products
   );
 
@@ -404,12 +452,14 @@ const DetailTransaksi = () => {
               <table className="table table-bordered mb-0">
                 <thead>
                   <tr className="text-center">
-                    <th style={{ width: '30%' }}>Nama Produk</th>
-                    <th style={{ width: '15%' }}>Jumlah</th>
-                    <th style={{ width: '15%' }}>Harga</th>
-                    <th style={{ width: '15%' }}>Terjual</th>
-                    <th style={{ width: '10%' }}>Sisa</th>
-                    <th style={{ width: '15%' }}>Pendapatan</th>
+                    <th style={{ width: '20%' }}>Nama Produk</th>
+                    <th style={{ width: '10%' }}>Jumlah</th>
+                    <th style={{ width: '12%' }}>Harga Pokok</th>
+                    <th style={{ width: '12%' }}>Harga Jual</th>
+                    <th style={{ width: '10%' }}>Terjual</th>
+                    <th style={{ width: '8%' }}>Sisa</th>
+                    <th style={{ width: '10%' }}>Margin/Unit</th>
+                    <th style={{ width: '13%' }}>Total Pendapatan</th>
                     {isEditing && <th style={{ width: '5%' }}>Aksi</th>}
                   </tr>
                 </thead>
@@ -422,7 +472,7 @@ const DetailTransaksi = () => {
                           {isEditing ? (
                             <input
                               type="text"
-                              className="form-control"
+                              className="form-control form-control-sm"
                               value={product.name}
                               onChange={(e) => handleProductChange(index, 'name', e.target.value)}
                             />
@@ -434,7 +484,7 @@ const DetailTransaksi = () => {
                           {isEditing ? (
                             <input
                               type="number"
-                              className="form-control text-center"
+                              className="form-control form-control-sm text-center"
                               min="0"
                               value={product.quantity}
                               onChange={(e) => handleProductChange(index, 'quantity', e.target.value)}
@@ -447,20 +497,33 @@ const DetailTransaksi = () => {
                           {isEditing ? (
                             <input
                               type="number"
-                              className="form-control text-end"
+                              className="form-control form-control-sm text-end"
                               min="0"
-                              value={product.price}
-                              onChange={(e) => handleProductChange(index, 'price', e.target.value)}
+                              value={product.costPrice}
+                              onChange={(e) => handleProductChange(index, 'costPrice', e.target.value)}
                             />
                           ) : (
-                            `Rp. ${product.price ? product.price.toLocaleString('id-ID') : 0}`
+                            `Rp ${product.costPrice ? product.costPrice.toLocaleString('id-ID') : 0}`
+                          )}
+                        </td>
+                        <td className="text-end">
+                          {isEditing ? (
+                            <input
+                              type="number"
+                              className="form-control form-control-sm text-end"
+                              min="0"
+                              value={product.sellingPrice}
+                              onChange={(e) => handleProductChange(index, 'sellingPrice', e.target.value)}
+                            />
+                          ) : (
+                            `Rp ${product.sellingPrice ? product.sellingPrice.toLocaleString('id-ID') : 0}`
                           )}
                         </td>
                         <td className="text-center">
                           {isEditing ? (
                             <input
                               type="number"
-                              className="form-control text-center"
+                              className="form-control form-control-sm text-center"
                               min="0"
                               max={product.quantity}
                               value={product.sold}
@@ -474,11 +537,12 @@ const DetailTransaksi = () => {
                           {product.stock}
                         </td>
                         <td className="text-end">
-                          {isEditing ? (
-                            `Rp. ${product.revenue.toLocaleString('id-ID')}`
-                          ) : (
-                            `Rp. ${product.revenue ? product.revenue.toLocaleString('id-ID') : 0}`
-                          )}
+                          <span className={product.profitMargin > 0 ? 'text-success' : 'text-danger'}>
+                            Rp {product.profitMargin ? product.profitMargin.toLocaleString('id-ID') : 0}
+                          </span>
+                        </td>
+                        <td className="text-end">
+                          <strong>Rp {product.totalRevenue ? product.totalRevenue.toLocaleString('id-ID') : 0}</strong>
                         </td>
                         {isEditing && (
                           <td className="text-center">
@@ -496,7 +560,7 @@ const DetailTransaksi = () => {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={isEditing ? "7" : "6"} className="text-center py-3">
+                      <td colSpan={isEditing ? "9" : "8"} className="text-center py-3">
                         Tidak ada produk
                       </td>
                     </tr>
@@ -510,6 +574,35 @@ const DetailTransaksi = () => {
           <div className="bg-white rounded shadow-sm">
             <div className="p-3 border-bottom">
               <h5 className="fw-bold mb-0">Ringkasan Transaksi</h5>
+            </div>
+            <div className="row p-3">
+              <div className="col-md-4">
+                <div className="card bg-secondary text-white">
+                  <div className="card-body text-center">
+                    <h6>Total Pendapatan</h6>
+                    <h5>Rp {totalRevenue.toLocaleString('id-ID')}</h5>
+                    <small>Produk terjual: {totalSold} pcs</small>
+                  </div>
+                </div>
+              </div>
+              <div className="col-md-4">
+                <div className="card bg-success text-white">
+                  <div className="card-body text-center">
+                    <h6>Keuntungan UMKM</h6>
+                    <h5>Rp {totalUmkmProfit.toLocaleString('id-ID')}</h5>
+                    <small>Margin bersih</small>
+                  </div>
+                </div>
+              </div>
+              <div className="col-md-4">
+                <div className="card bg-primary text-white">
+                  <div className="card-body text-center">
+                    <h6>Pendapatan Mitra</h6>
+                    <h5>Rp {totalPartnerRevenue.toLocaleString('id-ID')}</h5>
+                    <small>Bagian mitra</small>
+                  </div>
+                </div>
+              </div>
             </div>
             <div className="table-responsive">
               <table className="table mb-0">
@@ -527,8 +620,10 @@ const DetailTransaksi = () => {
                     <td className="text-end">{totalStock} pcs</td>
                   </tr>
                   <tr className="table-light">
-                    <td className="fw-bold">Total Pendapatan</td>
-                    <td className="text-end fw-bold">Rp. {totalRevenue.toLocaleString('id-ID')}</td>
+                    <td className="fw-bold">Efisiensi Penjualan</td>
+                    <td className="text-end fw-bold">
+                      {totalProducts > 0 ? ((totalSold / totalProducts) * 100).toFixed(1) : 0}%
+                    </td>
                   </tr>
                 </tbody>
               </table>
