@@ -1,34 +1,48 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
 function Login() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
 
-  const handleLogin = (e) => {
+  const handleLogin = async (e) => {
     e.preventDefault();
-
-    if (email === 'admin@example.com' && password === '123456') {
-      localStorage.setItem('isLoggedIn', 'true');
-      navigate('/dashboard');
-    } else {
-      alert('Email atau password salah!');
+    try {
+      const response = await axios.post(`http://localhost:4000/auth/login`, {
+        email,
+        password,
+      });
+      console.log("hahah");
+      if (response.status === 200) {
+        localStorage.setItem("isLoggedIn", "true"); // ✅ tambahkan ini
+        console.log("Login successful:", response.data);
+        navigate("/dashboard");
+      }
+    } catch (error) {
+      console.log("Error during login:", error);
+      alert("Email atau password salah!");
+      if (error.response && error.response.status === 401) {
+      } else {
+        alert("Terjadi kesalahan saat login.");
+      }
     }
   };
 
   // Add Poppins and Inter fonts import
   React.useEffect(() => {
-    const link1 = document.createElement('link');
-    link1.rel = 'stylesheet';
-    link1.href = 'https://fonts.googleapis.com/css2?family=Poppins:wght@700&display=swap';
+    const link1 = document.createElement("link");
+    link1.rel = "stylesheet";
+    link1.href =
+      "https://fonts.googleapis.com/css2?family=Poppins:wght@700&display=swap";
     document.head.appendChild(link1);
-    
-    const link2 = document.createElement('link');
-    link2.rel = 'stylesheet';
-    link2.href = 'https://fonts.googleapis.com/css2?family=Inter&display=swap';
+
+    const link2 = document.createElement("link");
+    link2.rel = "stylesheet";
+    link2.href = "https://fonts.googleapis.com/css2?family=Inter&display=swap";
     document.head.appendChild(link2);
-    
+
     return () => {
       document.head.removeChild(link1);
       document.head.removeChild(link2);
@@ -36,25 +50,46 @@ function Login() {
   }, []);
 
   return (
-    <div className="d-flex justify-content-center align-items-center min-vh-100 px-3 py-4" style={{ backgroundColor: '#f6e9b2' }}>
-      <div className="card shadow w-100 mx-auto" style={{ maxWidth: '400px', borderRadius: '16px', padding: '30px' }}>
+    <div
+      className="d-flex justify-content-center align-items-center min-vh-100 px-3 py-4"
+      style={{ backgroundColor: "#f6e9b2" }}
+    >
+      <div
+        className="card shadow w-100 mx-auto"
+        style={{ maxWidth: "400px", borderRadius: "16px", padding: "30px" }}
+      >
         <div className="text-center mb-4">
-          <h2 className="mb-2" style={{ color: '#9e2a2b', fontSize: '40px', fontFamily: 'Poppins, sans-serif', fontWeight: 'Bold' }}>
+          <h2
+            className="mb-2"
+            style={{
+              color: "#9e2a2b",
+              fontSize: "40px",
+              fontFamily: "Poppins, sans-serif",
+              fontWeight: "Bold",
+            }}
+          >
             DompetOzil.
           </h2>
-          <p className="m-0" style={{ color: '#9e2a2b', fontFamily: 'Inter, sans-serif', fontWeight: 'Regular' }}>
+          <p
+            className="m-0"
+            style={{
+              color: "#9e2a2b",
+              fontFamily: "Inter, sans-serif",
+              fontWeight: "Regular",
+            }}
+          >
             Kelola Keuangan Lebih Mudah!
           </p>
         </div>
         <form onSubmit={handleLogin}>
           <div className="mb-3">
-            <input 
+            <input
               type="email"
               className="form-control"
               placeholder="E-mail"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              style={{ padding: '12px', borderRadius: '4px' }}
+              style={{ padding: "12px", borderRadius: "4px" }}
               required
             />
           </div>
@@ -65,21 +100,21 @@ function Login() {
               placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              style={{ padding: '12px', borderRadius: '4px' }}
+              style={{ padding: "12px", borderRadius: "4px" }}
               required
             />
           </div>
           <div className="text-center mt-2">
-            <button 
-              type="submit" 
-              className="btn w-100" 
-              style={{ 
-                backgroundColor: '#9e2a2b', 
-                color: 'white', 
-                padding: '8px', 
-                borderRadius: '4px',
-                fontWeight: 'normal',
-                fontSize: '14px'
+            <button
+              type="submit"
+              className="btn w-100"
+              style={{
+                backgroundColor: "#9e2a2b",
+                color: "white",
+                padding: "8px",
+                borderRadius: "4px",
+                fontWeight: "normal",
+                fontSize: "14px",
               }}
             >
               Login
