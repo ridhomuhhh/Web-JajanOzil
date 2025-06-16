@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import Header from '../components/Header';
 import Sidebar from '../components/SideBar';
 
@@ -16,34 +17,28 @@ const DetailTransaksi = () => {
   const [editedTransaction, setEditedTransaction] = useState(null);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Ambil data transaksi berdasarkan ID
+  // Ambil data transaksi berdasarkan ID dari API
   useEffect(() => {
-    const fetchTransactionDetail = () => {
+    const fetchTransactionDetail = async () => {
       try {
-        // Ambil data dari localStorage
-        const savedTransactions = localStorage.getItem('transactions');
-        if (savedTransactions) {
-          const transactions = JSON.parse(savedTransactions);
-          // Cari transaksi dengan ID yang sesuai
-          const foundTransaction = transactions.find(
-            (transaction) => transaction.id === parseInt(id)
-          );
-          
-          if (foundTransaction) {
-            setTransaction(foundTransaction);
-            // Inisialisasi state untuk data yang diedit
-            setEditedTransaction(JSON.parse(JSON.stringify(foundTransaction)));
-          } else {
-            alert('Transaksi tidak ditemukan!');
-            navigate('/transaksi');
-          }
-        } else {
-          alert('Tidak ada data transaksi!');
-          navigate('/transaksi');
+        setLoading(true);
+        const response = await axios.get(`http://localhost:4000/transactions/${id}`);
+        
+        if (response.status === 200) {
+          const transactionData = response.data;
+          setTransaction(transactionData);
+          // Inisialisasi state untuk data yang diedit
+          setEditedTransaction(JSON.parse(JSON.stringify(transactionData)));
         }
       } catch (error) {
         console.error('Error fetching transaction:', error);
-        alert('Terjadi kesalahan saat mengambil data transaksi!');
+        
+        if (error.response && error.response.status === 404) {
+          alert('Transaksi tidak ditemukan!');
+        } else {
+          alert('Terjadi kesalahan saat mengambil data transaksi!');
+        }
+        navigate('/transaksi');
       } finally {
         setLoading(false);
       }
@@ -61,7 +56,8 @@ const DetailTransaksi = () => {
 
   const handleLogout = () => {
     setIsLoggingOut(true);
-    // Logic logout
+    localStorage.removeItem('isLoggedIn');
+    navigate('/login');
   };
 
   // Format tanggal ke dd/mm/yyyy
@@ -216,8 +212,8 @@ const DetailTransaksi = () => {
     }
   };
 
-  // Simpan perubahan
-  const handleSaveChanges = () => {
+  // Simpan perubahan ke API
+  const handleSaveChanges = async () => {
     setIsSaving(true);
     
     try {
@@ -260,38 +256,52 @@ const DetailTransaksi = () => {
       editedTransaction.totalUmkmProfit = totalUmkmProfit;
       editedTransaction.totalPartnerRevenue = totalPartnerRevenue;
 
-      // Ambil data transaksi dari localStorage
-      const savedTransactions = localStorage.getItem('transactions');
-      let transactions = savedTransactions ? JSON.parse(savedTransactions) : [];
+      // Kirim data ke API untuk update
+      const response = await axios.put('http://localhost:4000/transactions/${id}', editedTransaction);
       
-      // Cari index transaksi yang sedang diedit
-      const transactionIndex = transactions.findIndex(t => t.id === parseInt(id));
-      
-      if (transactionIndex !== -1) {
-        // Update transaksi
-        transactions[transactionIndex] = editedTransaction;
-        
-        // Simpan kembali ke localStorage
-        localStorage.setItem('transactions', JSON.stringify(transactions));
-        
-        // Trigger event storage untuk memberi tahu komponen lain bahwa data berubah
-        window.dispatchEvent(new Event('localStorageUpdated'));
-        
-        // Update state transaksi
-        setTransaction(editedTransaction);
+      if (response.status === 200) {
+        // Update state transaksi dengan data dari response
+        setTransaction(response.data);
         
         // Keluar dari mode edit
         setIsEditing(false);
         
         alert('Transaksi berhasil diperbarui!');
-      } else {
-        alert('Transaksi tidak ditemukan!');
       }
     } catch (error) {
       console.error('Error saving transaction:', error);
-      alert('Terjadi kesalahan saat menyimpan data transaksi!');
+      
+      if (error.response && error.response.status === 404) {
+        alert('Transaksi tidak ditemukan!');
+      } else if (error.response && error.response.status === 400) {
+        alert('Data transaksi tidak valid!');
+      } else {
+        alert('Terjadi kesalahan saat menyimpan data transaksi!');
+      }
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  // Hapus transaksi dari API
+  const handleDeleteTransaction = async () => {
+    if (window.confirm('Apakah Anda yakin ingin menghapus transaksi ini? Tindakan ini tidak dapat dibatalkan.')) {
+      try {
+        const response = await axios.delete('http://localhost:4000/transactions/${id}');
+        
+        if (response.status === 200) {
+          alert('Transaksi berhasil dihapus!');
+          navigate('/transaksi');
+        }
+      } catch (error) {
+        console.error('Error deleting transaction:', error);
+        
+        if (error.response && error.response.status === 404) {
+          alert('Transaksi tidak ditemukan!');
+        } else {
+          alert('Terjadi kesalahan saat menghapus transaksi!');
+        }
+      }
     }
   };
 

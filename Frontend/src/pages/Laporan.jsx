@@ -1,6 +1,7 @@
 // Laporan.jsx
 
 import React, { useState, useEffect } from "react";
+import axios from "axios";
 import Header from "../components/Header";
 import Sidebar from "../components/SideBar";
 
@@ -13,28 +14,52 @@ const Laporan = () => {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Load transactions from localStorage
-  useEffect(() => {
-    const loadTransactions = () => {
+  // Fetch transactions from API
+  const fetchTransactions = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      
+      const response = await axios.get('http://localhost:4000/api/transactions', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`, // jika menggunakan token
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.status === 200) {
+        setTransactions(response.data.transactions || response.data);
+        console.log("Transactions loaded successfully:", response.data);
+      }
+    } catch (error) {
+      console.error("Error fetching transactions:", error);
+      setError("Gagal memuat data transaksi");
+      
+      // Fallback ke localStorage jika API gagal
       try {
         const savedTransactions = localStorage.getItem("transactions");
         if (savedTransactions) {
           const parsedTransactions = JSON.parse(savedTransactions);
           setTransactions(parsedTransactions);
+          console.log("Loaded from localStorage as fallback");
         }
-      } catch (error) {
-        console.error("Error loading transactions:", error);
-      } finally {
-        setLoading(false);
+      } catch (localError) {
+        console.error("Error loading from localStorage:", localError);
       }
-    };
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    loadTransactions();
+  // Load transactions on component mount
+  useEffect(() => {
+    fetchTransactions();
 
-    // Listen for localStorage updates
+    // Listen for localStorage updates as fallback
     const handleStorageUpdate = () => {
-      loadTransactions();
+      fetchTransactions();
     };
 
     window.addEventListener("localStorageUpdated", handleStorageUpdate);
@@ -46,8 +71,41 @@ const Laporan = () => {
     };
   }, []);
 
-  // Generate reports from transactions
-  useEffect(() => {
+  // Fetch filtered reports from API
+  const fetchFilteredReports = async (period, start, end) => {
+    try {
+      const params = {
+        period: period,
+        ...(period === 'custom' && start && end && {
+          startDate: start,
+          endDate: end
+        })
+      };
+
+      const response = await axios.get('http://localhost:4000/api/reports', {
+        params,
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (response.status === 200) {
+        setFilteredReports(response.data.reports || response.data);
+        console.log("Filtered reports loaded successfully:", response.data);
+        return;
+      }
+    } catch (error) {
+      console.error("Error fetching filtered reports:", error);
+      // Fallback to local processing if API fails
+    }
+
+    // Fallback: Generate reports locally if API fails
+    generateLocalReports();
+  };
+
+  // Generate reports from transactions (fallback method)
+  const generateLocalReports = () => {
     if (transactions.length === 0) {
       setFilteredReports([]);
       return;
@@ -154,7 +212,23 @@ const Laporan = () => {
     }
 
     setFilteredReports(filtered);
+  };
+
+  // Generate reports when transactions or filters change
+  useEffect(() => {
+    if (transactions.length > 0) {
+      fetchFilteredReports(filterPeriod, startDate, endDate);
+    } else {
+      setFilteredReports([]);
+    }
   }, [transactions, filterPeriod, startDate, endDate]);
+
+
+
+  // Refresh data
+  const refreshData = () => {
+    fetchTransactions();
+  };
 
   // Konfirmasi logout
   const confirmLogout = () => {
@@ -163,9 +237,32 @@ const Laporan = () => {
     }
   };
 
-  const handleLogout = () => {
-    setIsLoggingOut(true);
-    // Logic logout
+  const handleLogout = async () => {
+    try {
+      setIsLoggingOut(true);
+      
+      // Call logout API
+      await axios.post('http://localhost:4000/auth/logout', {}, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      // Clear local storage
+      localStorage.removeItem('token');
+      localStorage.removeItem('isLoggedIn');
+      
+      console.log("Logout successful");
+    } catch (error) {
+      console.error("Error during logout:", error);
+      // Still clear local storage even if API fails
+      localStorage.removeItem('token');
+      localStorage.removeItem('isLoggedIn');
+    } finally {
+      setIsLoggingOut(false);
+      // Redirect will be handled by route protection
+    }
   };
 
   // Format tanggal untuk tampilan
@@ -180,8 +277,7 @@ const Laporan = () => {
 
   // Handle filter
   const handleFilter = () => {
-    // Filter logic is handled automatically by useEffect
-    // This function can be used for additional filter actions if needed
+    fetchFilteredReports(filterPeriod, startDate, endDate);
   };
 
   // Handle period change

@@ -1,7 +1,8 @@
 // CatatTransaksi.jsx
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import Header from '../components/Header';
 import Sidebar from '../components/SideBar';
 
@@ -12,11 +13,32 @@ const CatatTransaksi = () => {
   const [showProductForm, setShowProductForm] = useState(false);
   const [productCount, setProductCount] = useState(0);
   const [products, setProducts] = useState([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [partners, setPartners] = useState([]); // Data mitra dari API
   const [currentTransaction, setCurrentTransaction] = useState({
     date: new Date().toISOString().split('T')[0],
     partnerName: '',
     products: []
   });
+
+  // Fetch data mitra saat komponen dimount
+  useEffect(() => {
+    fetchPartners();
+  }, []);
+
+  // Fungsi untuk mengambil data mitra dari API
+  const fetchPartners = async () => {
+    try {
+      const response = await axios.get('http://localhost:4000/api/partners');
+      if (response.status === 200) {
+        setPartners(response.data);
+      }
+    } catch (error) {
+      console.error('Error fetching partners:', error);
+      // Jika gagal ambil dari API, bisa menggunakan data dummy atau kosong
+      setPartners([]);
+    }
+  };
 
   // Konfirmasi logout
   const confirmLogout = () => {
@@ -27,7 +49,8 @@ const CatatTransaksi = () => {
 
   const handleLogout = () => {
     setIsLoggingOut(true);
-    // Logic logout
+    localStorage.removeItem('isLoggedIn');
+    navigate('/login');
   };
 
   // Fungsi untuk menambah produk baru
@@ -50,8 +73,8 @@ const CatatTransaksi = () => {
     setProductCount(productCount + 1);
   };
 
-  // Fungsi untuk menyimpan transaksi
-  const handleSaveTransaction = () => {
+  // Fungsi untuk menyimpan transaksi ke API
+  const handleSaveTransaction = async () => {
     // Validasi input
     const isValid = products.every(product => 
       product.name.trim() && 
@@ -67,31 +90,50 @@ const CatatTransaksi = () => {
       return;
     }
 
-    // Hitung total revenue, keuntungan UMKM, dan pendapatan mitra
-    const totalRevenue = products.reduce((sum, product) => sum + product.totalRevenue, 0);
-    const totalUmkmProfit = products.reduce((sum, product) => sum + product.umkmProfit, 0);
-    const totalPartnerRevenue = products.reduce((sum, product) => sum + product.partnerRevenue, 0);
-    
-    // Membuat objek transaksi baru
-    const newTransaction = {
-      id: new Date().getTime(), // Menggunakan timestamp sebagai ID
-      date: currentTransaction.date,
-      partnerName: currentTransaction.partnerName,
-      products: [...products],
-      totalProducts: productCount,
-      totalRevenue: totalRevenue,
-      totalUmkmProfit: totalUmkmProfit,
-      totalPartnerRevenue: totalPartnerRevenue
-    };
-    
-    // Di sini Anda bisa menyimpan transaksi ke state global/context/redux
-    // Contoh menggunakan localStorage untuk demo
-    const existingTransactions = JSON.parse(localStorage.getItem('transactions') || '[]');
-    localStorage.setItem('transactions', JSON.stringify([...existingTransactions, newTransaction]));
-    
-    // Kembali ke halaman Transaksi setelah simpan
-    alert('Transaksi berhasil disimpan!');
-    navigate('/transaksi');
+    if (!currentTransaction.partnerName.trim()) {
+      alert('Mohon isi nama mitra.');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      // Hitung total revenue, keuntungan UMKM, dan pendapatan mitra
+      const totalRevenue = products.reduce((sum, product) => sum + product.totalRevenue, 0);
+      const totalUmkmProfit = products.reduce((sum, product) => sum + product.umkmProfit, 0);
+      const totalPartnerRevenue = products.reduce((sum, product) => sum + product.partnerRevenue, 0);
+      
+      // Membuat objek transaksi baru
+      const newTransaction = {
+        date: currentTransaction.date,
+        partnerName: currentTransaction.partnerName,
+        products: [...products],
+        totalProducts: productCount,
+        totalRevenue: totalRevenue,
+        totalUmkmProfit: totalUmkmProfit,
+        totalPartnerRevenue: totalPartnerRevenue
+      };
+      
+      // Kirim data ke API
+      const response = await axios.post('http://localhost:4000/api/transactions', newTransaction);
+      
+      if (response.status === 200 || response.status === 201) {
+        alert('Transaksi berhasil disimpan!');
+        navigate('/transaksi');
+      }
+    } catch (error) {
+      console.error('Error saving transaction:', error);
+      
+      if (error.response && error.response.status === 400) {
+        alert('Data transaksi tidak valid. Mohon periksa kembali.');
+      } else if (error.response && error.response.status === 500) {
+        alert('Terjadi kesalahan pada server. Silakan coba lagi.');
+      } else {
+        alert('Terjadi kesalahan saat menyimpan transaksi. Silakan coba lagi.');
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Fungsi untuk membatalkan transaksi dan kembali ke halaman transaksi

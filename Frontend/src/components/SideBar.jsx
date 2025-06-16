@@ -13,7 +13,9 @@ const Sidebar = () => {
       setActiveMenu('dashboard');
     } else if (path.includes('/transaksi')) {
       setActiveMenu('transaksi');
-    } else if (path.includes('/laporan')) {
+    } else if (path.includes('/catat-transaksi')) {
+      setActiveMenu('transaksi');
+    } else if(path.includes('/laporan')){
       setActiveMenu('laporan');
     }
   }, []);

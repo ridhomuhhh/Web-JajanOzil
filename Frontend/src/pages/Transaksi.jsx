@@ -1,18 +1,50 @@
+
+// Transaksi.jsx
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios";
 import Header from "../components/Header";
 import Sidebar from "../components/SideBar";
 
 const Transaksi = () => {
   const [username] = useState("Admin");
   const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [transactions, setTransactions] = useState(() => {
-    // Ambil data dari localStorage jika ada
-    const savedTransactions = localStorage.getItem("transactions");
-    return savedTransactions
-      ? JSON.parse(savedTransactions)
-      : [
-          // Data sampel sebagai fallback jika tidak ada data di localStorage
+  const [transactions, setTransactions] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  // State untuk pagination
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
+
+  // State untuk filter tanggal
+  const [filterDate, setFilterDate] = useState("");
+
+  const navigate = useNavigate();
+
+  // Fetch transactions from API
+  const fetchTransactions = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const response = await axios.get(`http://localhost:4000/api/transactions`);
+      
+      if (response.status === 200) {
+        setTransactions(response.data);
+        console.log("Transactions fetched successfully:", response.data);
+      }
+    } catch (error) {
+      console.error("Error fetching transactions:", error);
+      setError("Gagal mengambil data transaksi");
+      
+      // Fallback ke data localStorage jika API gagal
+      const savedTransactions = localStorage.getItem("transactions");
+      if (savedTransactions) {
+        setTransactions(JSON.parse(savedTransactions));
+      } else {
+        // Data sampel sebagai fallback terakhir
+        setTransactions([
           {
             id: 1,
             date: "2025-05-15",
@@ -25,17 +57,36 @@ const Transaksi = () => {
             partnerName: "PT Sejahtera",
             totalProducts: 5,
           },
-        ];
-  });
+        ]);
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
-  // State untuk pagination
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage] = useState(10); // Bisa diubah sesuai kebutuhan
+  // Delete transaction via API
+  const deleteTransactionAPI = async (id) => {
+    try {
+      const response = await axios.delete(`http://localhost:4000/api/transactions/${id}`);
+      
+      if (response.status === 200) {
+        console.log("Transaksi berhasil dihapus:", response.data);
+        // Refresh data setelah delete
+        await fetchTransactions();
+        setCurrentPage(1); // Reset ke halaman pertama
+        return true;
+      }
+    } catch (error) {
+      console.error("Kesalahan menghapus transaksi:", error);
+      alert("Gagal menghapus transaksi. Silakan coba lagi.");
+      return false;
+    }
+  };
 
-  // State untuk filter tanggal
-  const [filterDate, setFilterDate] = useState("");
-
-  const navigate = useNavigate();
+  // Load transactions on component mount
+  useEffect(() => {
+    fetchTransactions();
+  }, []);
 
   // Konfirmasi logout
   const confirmLogout = () => {
@@ -46,13 +97,13 @@ const Transaksi = () => {
 
   const handleLogout = () => {
     setIsLoggingOut(true);
-    // Logic logout
+    localStorage.removeItem("isLoggedIn");
+    navigate("/login");
   };
 
   // Navigasi ke halaman catat transaksi
   const navigateToCatatTransaksi = () => {
     navigate("/catat-transaksi");
-    // Jika navigasi tidak berhasil, coba console.log untuk debugging
     console.log("Navigating to /catat-transaksi");
   };
 
@@ -74,19 +125,25 @@ const Transaksi = () => {
   };
 
   // Fungsi untuk menghapus transaksi
-  const handleDeleteTransaction = (id) => {
+  const handleDeleteTransaction = async (id) => {
     if (window.confirm("Apakah Anda yakin ingin menghapus transaksi ini?")) {
-      const updatedTransactions = transactions.filter(
-        (transaction) => transaction.id !== id
-      );
-      setTransactions(updatedTransactions);
-
-      // Update localStorage
-      localStorage.setItem("transactions", JSON.stringify(updatedTransactions));
-
-      // Reset ke halaman pertama jika data berkurang
-      setCurrentPage(1);
+      const success = await deleteTransactionAPI(id);
+      
+      if (!success) {
+        // Fallback ke localStorage jika API gagal
+        const updatedTransactions = transactions.filter(
+          (transaction) => transaction.id !== id
+        );
+        setTransactions(updatedTransactions);
+        localStorage.setItem("transactions", JSON.stringify(updatedTransactions));
+        setCurrentPage(1);
+      }
     }
+  };
+
+  // Refresh data function
+  const handleRefreshData = () => {
+    fetchTransactions();
   };
 
   // Filter transaksi berdasarkan tanggal
@@ -111,7 +168,7 @@ const Transaksi = () => {
   // Handle filter change
   const handleFilterChange = (e) => {
     setFilterDate(e.target.value);
-    setCurrentPage(1); // Reset ke halaman pertama saat filter berubah
+    setCurrentPage(1);
   };
 
   // Reset filter
@@ -129,10 +186,8 @@ const Transaksi = () => {
       }
     };
 
-    // Tambahkan event listener
     window.addEventListener("storage", handleStorageChange);
 
-    // Clean up event listener
     return () => {
       window.removeEventListener("storage", handleStorageChange);
     };
