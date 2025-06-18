@@ -1,0 +1,46 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @default(now()) @updatedAt
+}
+
+model LaporanHarian {
+  id          Int           @id @default(autoincrement())
+  tanggal     DateTime
+  mitraHarian MitraHarian[]
+}
+
+model MitraHarian {
+  id               Int                @id @default(autoincrement())
+  idLaporanHarian  Int
+  namaMitra        String
+  produkDititipkan ProdukDititipkan[]
+
+  laporanHarian LaporanHarian @relation(fields: [idLaporanHarian], references: [id])
+}
+
+model ProdukDititipkan {
+  id              Int    @id @default(autoincrement())
+  idMitraHarian   Int
+  namaProduk      String
+  jumlahTitip     Int
+  sisa            Int
+  harga           Int
+  produkTerjual   Int    @default(0)
+  totalPendapatan Int    @default(0)
+
+  mitraHarian MitraHarian @relation(fields: [idMitraHarian], references: [id])
+}
